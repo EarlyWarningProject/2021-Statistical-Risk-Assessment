@@ -1,0 +1,79 @@
+---
+title: "SRA 2020-based"
+author: "Julia Levine, Chad Hazlett"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(glmnet)
+library(data.table)
+library(ggplot2)
+library(knitr)
+```
+
+# Run Model
+
+```{r}
+
+outcomenames <- c("anymk.start.1", "anymk.start.2window")
+
+# Note change to anymk.ongoing and anymk.ever (from mkl.ongoing and mkl.ever)
+predictornames <- c("anymk.ongoing","anymk.ever",
+                    "reg.afr", "reg.eap", "reg.eur", "reg.mna", "reg.sca", 
+                    "countryage.ln", "popsize.ln.combined", "imr.sqrt", 
+                    "gdppcgrowth.combined", "ios.iccpr1","includesnonstate",
+                    "minorityrule", "elf.ethnic", "battledeaths.ln",
+                    "candidaterestriction", "partyban","judicialreform",
+                    "religiousfreedom", "pol_killing_approved",
+                    "freemove_men4","freemove_women4", "freediscussion",
+                    "social_inequality","even_civilrights","repress_civilsoc",
+                    "social_power_dist", "ses_power_dist","tradeshare.ln.combined",
+                    "coup.try.5yr")
+```
+
+
+
+```{r}
+source("functions_used/create_datasets.R")
+source("functions_used/run_model.R")
+source("functions_used/format_results.R")
+```
+
+
+
+```{r, eval = FALSE}
+dat <- fread("../Make data/output/prepared2020predictors-2021-08-17.csv")
+
+
+# run the model and save the output
+base_years <- c("2020")
+results <- lapply(base_years, 
+                  function(x) format_results(dat = dat, base_year = x))
+names(results) <- paste0("base", base_years)
+list2env(results, .GlobalEnv)
+
+
+for(i in 1:length(results)){
+  write.csv(results[[i]][1], paste("results/", names(results)[i], "-run-", 
+                       Sys.Date(),".csv" , sep = ""), 
+            row.names = FALSE)
+}
+
+for(i in 1:length(results)){
+  write.csv(results[[i]][2], paste("results/", names(results)[i], "-coeffs-run-", 
+                       Sys.Date(),".csv" , sep = ""), 
+            row.names = FALSE)
+}
+
+for(i in 1:length(results)){
+    cv.glmnet <- results[[i]][[3]]
+  save(cv.glmnet, predictornames, file=paste("results/", names(results)[i], "-cv.glmnet-", 
+                       Sys.Date(),".Rdata" , sep = ""))
+}
+
+
+```
